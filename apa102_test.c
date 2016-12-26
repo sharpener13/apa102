@@ -1,3 +1,9 @@
+/*************************************************************************//**
+ * @file apa102_test.c
+ *
+ *     Just quick test of APA102 libraries and related stuff.
+ *
+ ****************************************************************************/
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -9,10 +15,18 @@
 #include "larson.h"
 
 
+/*****************************************************************************
+ * Private macros
+ ****************************************************************************/
 #define SPI_DEVICE  "/dev/spidev0.0"
 #define SPI_SPEED   20000000
 #define PIXEL_COUNT 360
 #define BRIGHTNESS  8
+
+
+/*****************************************************************************
+ * Private variables
+ ****************************************************************************/
 
 
 static apa102_t leds =
@@ -26,6 +40,11 @@ static apa102_t leds =
 static bool is_running = true;
 
 
+/*****************************************************************************
+ * Private functions
+ ****************************************************************************/
+
+
 static void sig_handler(int signo)
 {
     if (signo == SIGINT)
@@ -34,20 +53,6 @@ static void sig_handler(int signo)
         is_running = false;
     }
 }
-
-
-#if 0
-static void delay_us(int us)
-{
-    const struct timespec time =
-    {
-        .tv_sec = 0,
-        .tv_nsec = us * 1000,
-    };
-
-    nanosleep(&time, NULL);
-}
-#endif
 
 
 static uint64_t get_us(void)
@@ -146,18 +151,6 @@ static void test2(void)
                 .frame_update_time = 6 * 1000,
                 .mode              = APA102_PIX_MODE_XOR,
             },
-#if 0            
-            {
-                .pixels            = PIXEL_COUNT,
-                .length            = 4,
-                .position          = PIXEL_COUNT - PIXEL_COUNT / 4,
-                .is_forward        = rand() & 1,
-                .speed             = 2,
-                .color             = 0xffff0000,
-                .frame_update_time = 10 * 1000,
-                .mode              = APA102_PIX_MODE_XOR,
-            },
-#endif            
         };
         int      frame = 0;
         int      count = sizeof(larsons) / sizeof(larson_t);
@@ -200,16 +193,36 @@ static void test2(void)
 }
 
 
+/*****************************************************************************
+ * Public functions
+ ****************************************************************************/
+
+
+/*************************************************************************//**
+ * Main.
+ *
+ * Entry point.
+ *
+ ****************************************************************************/
 int main(int argc, char *argv[])
 {
     srand((unsigned int)get_us());
     if (signal(SIGINT, sig_handler) == SIG_ERR)
-        fprintf(stderr, "\nCan't catch SIGINT!\n");
+        fprintf(stderr, "Cannot catch SIGINT!\n");
 
-    apa102_init(&leds);
-    test1();
-    test2();
-    apa102_done(&leds);
+    if (apa102_init(&leds) == 0)
+    {
+        test1();
+        test2();
+        apa102_done(&leds);
+    }
+    else
+        fprintf(stderr, "Cannot init APA102 library!\n");
 
     return 0;
 }
+
+
+/*****************************************************************************
+ * End of file
+ ****************************************************************************/

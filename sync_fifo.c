@@ -1,3 +1,9 @@
+/*************************************************************************//**
+ * @file sync_fifo.c
+ *
+ *     Synchronization layer for simple FIFO handling
+ *
+ ****************************************************************************/
 #include <stdio.h>
 #include <stdbool.h>
 #include <pthread.h>
@@ -5,6 +11,19 @@
 #include "sync_fifo.h"
 
 
+/*******************************************************************************
+ * Public functions
+ ******************************************************************************/
+
+
+/*************************************************************************//**
+ * Initialize FIFO
+ *
+ * @param[in,out]    fifo    FIFO context
+ * @param[in]        size    Number of items the FIFO can hold
+ * @param[in]        name    FIFO name (not used for anything)
+ *
+ ****************************************************************************/
 void sync_fifo_init(sync_fifo_t *fifo, int size, char *name)
 {
     fifo->name = name;
@@ -15,6 +34,12 @@ void sync_fifo_init(sync_fifo_t *fifo, int size, char *name)
 }
 
 
+/*************************************************************************//**
+ * Finalize FIFO
+ *
+ * @param[in,out]    fifo    FIFO context
+ *
+ ****************************************************************************/
 void sync_fifo_done(sync_fifo_t *fifo)
 {
     fifo_done(&fifo->raw);
@@ -24,6 +49,16 @@ void sync_fifo_done(sync_fifo_t *fifo)
 }
 
 
+/*************************************************************************//**
+ * Insert item into FIFO
+ *
+ * @param[in,out]    fifo          FIFO context
+ * @param[in]        item          Item to be inserted
+ * @param[in]        is_waiting    Wait until FIFO is not full
+ *
+ * @return    zero on success, nonzero otherwise
+ *
+ ****************************************************************************/
 int sync_fifo_put(sync_fifo_t *fifo, void *item, bool is_waiting)
 {
     int ret = 0;
@@ -50,6 +85,16 @@ int sync_fifo_put(sync_fifo_t *fifo, void *item, bool is_waiting)
 }
 
 
+/*************************************************************************//**
+ * Remove item from FIFO
+ *
+ * @param[in,out]    fifo          FIFO context
+ * @param[in,out]    item          Storage for removed item
+ * @param[in]        is_waiting    Wait until FIFO is not empty 
+ *
+ * @return    zero on success, nonzero otherwise
+ *
+ ****************************************************************************/
 int sync_fifo_get(sync_fifo_t *fifo, void **item, bool is_waiting)
 {
     int ret = 0;
@@ -74,3 +119,8 @@ int sync_fifo_get(sync_fifo_t *fifo, void **item, bool is_waiting)
 
     return ret;
 }
+
+
+/*****************************************************************************
+ * End of file
+ ****************************************************************************/

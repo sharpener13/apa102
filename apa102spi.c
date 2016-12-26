@@ -1,3 +1,9 @@
+/*************************************************************************//**
+ * @file apa102spi.c
+ *
+ *     APA102 LED chain SPI layer support library.
+ *
+ ****************************************************************************/
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -11,50 +17,39 @@
 
 
 /*******************************************************************************
- * Function prototypes
- ******************************************************************************/
-
-
-/*******************************************************************************
- * Private macros
- ******************************************************************************/
-#define SPI_DEVICE_SIZE 256
-
-
-/*******************************************************************************
  * Private variables
  ******************************************************************************/
-static char      spi_device[SPI_DEVICE_SIZE + 1];
-static uint32_t  spi_speed = 0;
-static int       spi_fd    = -1;
+static int spi_fd = -1;
 
 
 /*******************************************************************************
- * Private functions
+ * Public functions
  ******************************************************************************/
 
-/**
- * SPI Open
+
+/*************************************************************************//**
+ * Open SPI device
  *
- * Expected arguments:
- *     - spi_device: string
- *     - spi_speed : int
- */
-int apa102spi_open(char *device, int speed_hz)
+ * root access might be needed.
+ *
+ * @param[in]    device      SPIdev device name.
+ * @param[in]    speed_hz    SPIdev device speed (might be very rough, current
+ *                           kernel's module contains bug allowing only limited
+ *                           subset of available speeds).
+ *
+ * @return    zero on success, nonzero otherwise
+ *
+ ****************************************************************************/
+int apa102spi_open(char *device, uint32_t speed_hz)
 {
     uint32_t mode = SPI_CPOL | SPI_CPHA | SPI_NO_CS;
     uint8_t  bits = 8;
     int      ret  = -1;
 
-    strncpy(spi_device, device, SPI_DEVICE_SIZE);
-    spi_device[SPI_DEVICE_SIZE] = 0;
-
-    spi_speed = speed_hz;
-
-    spi_fd = open(spi_device, O_WRONLY);
+    spi_fd = open(device, O_WRONLY);
     if (spi_fd < 0)
     {
-        fprintf(stderr, "Cannot open SPI device %s\n", spi_device);
+        fprintf(stderr, "Cannot open SPI device %s\n", device);
         return -1;
     }
 
@@ -72,10 +67,10 @@ int apa102spi_open(char *device, int speed_hz)
         return -3;
     }
 
-    ret = ioctl(spi_fd, SPI_IOC_WR_MAX_SPEED_HZ, &spi_speed);
+    ret = ioctl(spi_fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed_hz);
     if (ret == -1)
     {
-        fprintf(stderr, "Cannot setup SPI device speed %2.3f\n", spi_speed / 1000000.0);
+        fprintf(stderr, "Cannot setup SPI device speed %2.3f\n", speed_hz / 1000000.0);
         return -4;
     }
 
@@ -83,9 +78,12 @@ int apa102spi_open(char *device, int speed_hz)
 }
 
 
-/**
- * SPI Close
- */
+/*************************************************************************//**
+ * Close SPI device
+ *
+ * @return    zero on success, nonzero otherwise
+ *
+ ****************************************************************************/
 int apa102spi_close(void)
 {
     if (spi_fd >= 0)
@@ -98,15 +96,23 @@ int apa102spi_close(void)
 }
 
 
-/**
- * SPI Send the whole frame
+/*************************************************************************//**
+ * Send the whole frame over SPI
  *
  * Frame consists of:
- *    - 32 bits LED attention pattern
- *    - 32 x N bits LED data (A, B, G, R), where A is 0b111a_aaaa
- *    - at least N/2 bits of ones - clock latching compensation (each LED delays clock for half of cycle)
- */
-int apa102spi_update(uint8_t *data, int length)
+ *    - 32 bits LED attention pattern (all zeros)
+ *    - 32 x N bits LED data (A, B, G, R), where A is 0b111a_aaaa, where a is
+ *      desired LED brightness (0-31)
+ *    - at least N/2 bits of anything - clock latching compensation (each LED
+ *      delays clock for half of cycle)
+ *
+ * @param[in]    data      Frame data
+ * @param[in]    length    Frame data length
+ *
+ * @return    zero on success, nonzero otherwise
+ *
+ ****************************************************************************/
+int apa102spi_update(const uint8_t *data, int length)
 {
     struct spi_ioc_transfer tr  = {.delay_usecs = 0,};
     int                     ret = -1;

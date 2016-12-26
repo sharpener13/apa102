@@ -1,6 +1,11 @@
+/*************************************************************************//**
+ * @file apa102.h
+ *
+ *     APA102 LED chain rendering support library.
+ *
+ ****************************************************************************/
 #ifndef __APA102_H__
 #define __APA102_H__
-
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -8,6 +13,14 @@
 #include "sync_fifo.h"
 
 
+/*****************************************************************************
+ * Public types
+ ****************************************************************************/
+
+
+/**
+ * Pixel combination mode
+ */
 typedef enum apa102_pix_mode_tt
 {
     APA102_PIX_MODE_COPY,
@@ -19,13 +32,16 @@ typedef enum apa102_pix_mode_tt
 } apa102_pix_mode_t;
 
 
+/**
+ *  APA102 context
+ */
 typedef struct apa102_tt
 {
     /* Public */
-    char         *spi_device;
-    int           spi_speed;
-    int           pixel_count;
-    int           brightness;
+    char         *spi_device;   /**< SPI Device name */
+    int           spi_speed;    /**< SPI Speed in Hz */
+    int           pixel_count;  /**< Number of leds in the chain */
+    int           brightness;   /**< Default brightness (0:off - 31:max) */
 
     /* Private */
     uint8_t     **frame_pool;
@@ -39,6 +55,9 @@ typedef struct apa102_tt
 } apa102_t;
 
 
+/*****************************************************************************
+ * Public prototypes
+ ****************************************************************************/
 int  apa102_init          (apa102_t *self);
 int  apa102_done          (apa102_t *self);
 int  apa102_begin_frame   (apa102_t *self, bool copy_last);
@@ -51,3 +70,6 @@ void apa102_set_brightness(apa102_t *self, uint8_t brightness);
 
 
 #endif
+/*****************************************************************************
+ * End of file
+ ****************************************************************************/

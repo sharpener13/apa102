@@ -1,11 +1,19 @@
+/*************************************************************************//**
+ * @file colors.c
+ *
+ *     Various color related support stuff
+ *
+ ****************************************************************************/
 #ifndef __COLORS_H__
 #define __COLORS_H__
-
 
 #include <stdint.h>
 #include <stdbool.h>
 
 
+/*****************************************************************************
+ * Public macros
+ ****************************************************************************/
 #define COL_ALP(x) (0xff & ((x) >> 24))
 #define COL_RED(x) (0xff & ((x) >> 16))
 #define COL_GRN(x) (0xff & ((x) >>  8))
@@ -22,13 +30,21 @@
 #define COL_INV2(x, y, trig) (((x) > (trig)) ? (255 - (x)) : (y)) 
 
 
+/*****************************************************************************
+ * Public types
+ ****************************************************************************/
+
+
+/**
+ * Color change context
+ */
 typedef struct col_change_tt
 {
     /* Public */
-    uint32_t start;
-    uint32_t stop;
-    int      steps;
-    uint32_t current;
+    uint32_t start;     /**< Starting color  */
+    uint32_t stop;      /**< Ending color    */
+    int      steps;     /**< Number of steps */
+    uint32_t current;   /**< Current color   */
 
     /* Private */
     int      step;
@@ -36,9 +52,15 @@ typedef struct col_change_tt
 } col_change_t;
 
 
+/*****************************************************************************
+ * Public prototypes
+ ****************************************************************************/
 void     col_change_init(col_change_t *ch);
 bool     col_change_update(col_change_t *ch);
 uint32_t col_pick_random(void);
 
 
 #endif
+/*****************************************************************************
+ * End of file
+ ****************************************************************************/

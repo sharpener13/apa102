@@ -1,3 +1,9 @@
+/*************************************************************************//**
+ * @file apa102.c
+ *
+ *     APA102 LED chain rendering support library.
+ *
+ ****************************************************************************/
 #include <stdint.h>
 #include <string.h>
 #include <malloc.h>
@@ -7,6 +13,10 @@
 #include "apa102spi.h"
 #include "apa102.h"
 
+
+/*****************************************************************************
+ * Private macros
+ ****************************************************************************/
 #define DEFAULT_SPI_DEVICE  "/dev/spidev0.0"
 #define DEFAULT_SPI_SPEED   20000000
 #define DEFAULT_PIXEL_COUNT 146
@@ -23,6 +33,10 @@
 #define BRIGHT_RAW  0xe0
 #define BRIGHT_PICK(desired, def) (((desired) <= (BRIGHT_MAX)) ? (desired) : ((def) & BRIGHT_MASK))
 
+
+/*****************************************************************************
+ * Private prototypes
+ ****************************************************************************/
 static int       get_frame_data_len(apa102_t *self);
 static int       get_frame_end_pos (apa102_t *self);
 static int       get_frame_end_len (apa102_t *self);
@@ -33,6 +47,11 @@ static void      write_frame_start (apa102_t *self, uint8_t *frame);
 static void      write_frame_data  (apa102_t *self, uint8_t *frame);
 static void      write_frame_end   (apa102_t *self, uint8_t *frame);
 static int       get_pixel_pos     (apa102_t *self, int pixel);
+
+
+/*****************************************************************************
+ * Private functions
+ ****************************************************************************/
 
 
 static int get_frame_data_len(apa102_t *self)
@@ -164,6 +183,22 @@ static void *renderer(void *arg)
 }
 
 
+/*****************************************************************************
+ * Public functions
+ ****************************************************************************/
+
+
+/*************************************************************************//**
+ * Initialize the context
+ *
+ * Some of the context members are supposed to be setup prior this call, the
+ * private part is initialized by this.
+ *
+ * @param[in,out]    self    APA102 chain context
+ *
+ * @return    zero on success, nonzero otherwise
+ *
+ ****************************************************************************/
 int apa102_init(apa102_t *self)
 {
     int i;
@@ -188,6 +223,16 @@ int apa102_init(apa102_t *self)
 }
 
 
+/*************************************************************************//**
+ * Finalize the context
+ *
+ * Also release any allocated resources.
+ *
+ * @param[in,out]    self    APA102 chain context
+ *
+ * @return    zero on success, nonzero otherwise
+ *
+ ****************************************************************************/
 int apa102_done(apa102_t *self)
 {
     int ret = -1;
@@ -214,6 +259,19 @@ int apa102_done(apa102_t *self)
 }
 
 
+/*************************************************************************//**
+ * Prepare for rendering of the new frame
+ *
+ * Any pixel manipulation is supposed to be done between begin/finish frame
+ * calls.
+ *
+ * @param[in,out]    self         APA102 chain context
+ * @param[in]        copy_last    Copy the previous frame content or start with
+ *                                empty one
+ *
+ * @return    zero on success, nonzero otherwise
+ *
+ ****************************************************************************/
 int apa102_begin_frame(apa102_t *self, bool copy_last)
 {
     void    *item       = NULL;
@@ -234,12 +292,38 @@ int apa102_begin_frame(apa102_t *self, bool copy_last)
 }
 
 
+/*************************************************************************//**
+ * Finish rendering of the frame
+ *
+ * Finished frame is requested to be renderred (means to be sent over SPI to
+ * LEDs).
+ *
+ * @param[in,out]    self    APA102 chain context
+ *
+ * @return    zero on success, nonzero otherwise
+ *
+ ****************************************************************************/
 int apa102_finish_frame(apa102_t *self)
 {
     return sync_fifo_put(&self->full_frames, (void *)self->active_frame, true);
 }
 
 
+/*************************************************************************//**
+ * Change pixel color
+ *
+ * Use the AARRGGBB format for the pixel color, where for AA value above 0x1f is
+ * considered to be invalid and the detfault one is used.
+ *
+ * @param[in,out]    self     APA102 chain context
+ * @param[in]        pixel    LED offset in the chain
+ * @param[in]        argb     Desired color
+ * @param[in]        mode     Pixel combination mode (might need some additional
+ *                            love to be more useful)
+ *
+ * @return    zero on success, nonzero otherwise (pixel out of range)
+ *
+ ****************************************************************************/
 int apa102_set_pixel(apa102_t *self, int pixel, uint32_t argb, apa102_pix_mode_t mode)
 {
     uint8_t *frame = self->active_frame;
@@ -310,6 +394,16 @@ int apa102_set_pixel(apa102_t *self, int pixel, uint32_t argb, apa102_pix_mode_t
 }
 
 
+/*************************************************************************//**
+ * Get the current pixel color
+ *
+ * @param[in,out]    self     APA102 chain context
+ * @param[in]        pixel    LED offset in the chain
+ * @param[out]       argb     Read color
+ *
+ * @return    zero on success, nonzero otherwise (pixel out of range)
+ *
+ ****************************************************************************/
 int apa102_get_pixel(apa102_t *self, int pixel, uint32_t *argb)
 {
     uint8_t *frame = self->active_frame;
@@ -317,7 +411,7 @@ int apa102_get_pixel(apa102_t *self, int pixel, uint32_t *argb)
     int      ret   = 0;
 
     if (pos >= 0)
-        *argb = COL_ARGB(0x1f & frame[pos + 0], frame[pos + 3], frame[pos + 2], frame[pos + 1]);
+        *argb = COL_ARGB(BRIGHT_MASK & frame[pos + 0], frame[pos + 3], frame[pos + 2], frame[pos + 1]);
     else
         ret = -1;
 
@@ -325,6 +419,12 @@ int apa102_get_pixel(apa102_t *self, int pixel, uint32_t *argb)
 }
 
 
+/*************************************************************************//**
+ * Switch off all LEDs in the chain
+ *
+ * @param[in,out]    self    APA102 chain context
+ *
+ ****************************************************************************/
 void apa102_clear(apa102_t *self)
 {
     uint8_t *frame = self->active_frame;
@@ -342,6 +442,13 @@ void apa102_clear(apa102_t *self)
 }
 
 
+/*************************************************************************//**
+ * Change color of all LEDs in the chain
+ *
+ * @param[in,out]    self    APA102 chain context
+ * @param[in]        argb    Desired color
+ *
+ ****************************************************************************/
 void apa102_fill(apa102_t *self, uint32_t argb)
 {
     int i;
@@ -353,6 +460,15 @@ void apa102_fill(apa102_t *self, uint32_t argb)
 }
 
 
+/*************************************************************************//**
+ * Change brightness of all LEDs in the chain
+ *
+ * This updates current frame and also the default value for next frames.
+ *
+ * @param[in,out]    self          APA102 chain context
+ * @param[in]        brightness    Desired brightness level 0-31
+ *
+ ****************************************************************************/
 void apa102_set_brightness(apa102_t *self, uint8_t brightness)
 {
     uint8_t *frame = self->active_frame;
@@ -374,3 +490,6 @@ void apa102_set_brightness(apa102_t *self, uint8_t brightness)
 }
 
 
+/*****************************************************************************
+ * End of file
+ ****************************************************************************/

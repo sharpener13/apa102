@@ -1,8 +1,19 @@
+/*************************************************************************//**
+ * @file larson.c
+ *
+ *     Fancy LED pattern generation
+ *
+ ****************************************************************************/
 #include <stdlib.h>
 #include <malloc.h>
 #include <math.h>
 #include "apa102.h"
 #include "larson.h"
+
+
+/*****************************************************************************
+ * Private functions
+ ****************************************************************************/
 
 
 static int *create_bright(int length)
@@ -67,6 +78,20 @@ static uint8_t scale(int val, int old_max, int new_max)
 }
 
 
+/*****************************************************************************
+ * Public functions
+ ****************************************************************************/
+
+
+/*************************************************************************//**
+ * Initialize Larson
+ *
+ * As usual, public fields are expected to be set up prior this call.
+ *
+ * @param[in,out]    larson    Larson's context
+ * @param[in]        time      Time of initialization, looks unused
+ *
+ ****************************************************************************/
 void larson_init(larson_t *larson, uint64_t time)
 {
     srand((unsigned int)time);
@@ -80,12 +105,27 @@ void larson_init(larson_t *larson, uint64_t time)
 }
 
 
+/*************************************************************************//**
+ * Finalize Larson
+ *
+ * @param[in,out]    larson    Larson's context
+ *
+ ****************************************************************************/
 void larson_done(larson_t *larson)
 {
     destroy_bright(larson->bright);
 }
 
 
+/*************************************************************************//**
+ * Update Larson's internal state
+ *
+ * If time is already up, the state is updated, otherwise the update is skipped.
+ *
+ * @param[in,out]    larson    Larson's context
+ * @param[in]        time      Current time (in microseconds)
+ *
+ ****************************************************************************/
 void larson_update(larson_t *larson, uint64_t time)
 {
     unsigned int delay = time - larson->last_update_time;
@@ -137,6 +177,15 @@ void larson_update(larson_t *larson, uint64_t time)
 }
 
 
+/*************************************************************************//**
+ * Render Larson to the LED chain
+ *
+ * Based on Larson's internals, render him to the LEDs
+ *
+ * @param[in,out]    larson    Larson's context
+ * @param[in]        apa102    APA102 context for rendering
+ *
+ ****************************************************************************/
 void larson_render(larson_t *larson, apa102_t *apa102)
 {
     int      dir     = larson->is_forward ? 1 : -1;
@@ -165,6 +214,7 @@ void larson_render(larson_t *larson, apa102_t *apa102)
         col_change_update(&body_change);
         body_col = body_change.current;
 
+        /* FIXME */
         r = scale(COL_RED(body_col) * bri, 255 * 1000, 255);
         g = scale(COL_GRN(body_col) * bri, 255 * 1000, 255);
         b = scale(COL_BLU(body_col) * bri, 255 * 1000, 255);
@@ -178,3 +228,8 @@ void larson_render(larson_t *larson, apa102_t *apa102)
         cnt += 1;
     }
 }
+
+
+/*****************************************************************************
+ * End of file
+ ****************************************************************************/
