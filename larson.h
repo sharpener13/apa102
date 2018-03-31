@@ -1,5 +1,5 @@
 /*************************************************************************//**
- * @file larson.c
+ * @file larson.h
  *
  *     Fancy LED pattern generation
  *
@@ -30,6 +30,7 @@ typedef struct larson_tt
     int               position;          /**< Larson's starting position    */
     bool              is_forward;        /**< Moving forward (initially)    */
     bool              is_bidirect;       /**< Running back and forth        */
+    bool              is_looping;        /**< Running in loop               */
     int               speed;             /**< 1: Not skipping leds, >1 skips*/
     uint32_t          color;             /**< Legacy, say "color seed" ;-)  */
     unsigned int      frame_update_time; /**< Expected delay between updates*/

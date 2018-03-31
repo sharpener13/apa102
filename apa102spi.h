@@ -13,9 +13,9 @@
 /*****************************************************************************
  * Public prototypes
  ****************************************************************************/
-int apa102spi_open(char *device, int speed_hz);
+int apa102spi_open(const char *device, int speed_hz);
 int apa102spi_close(void);
-int apa102spi_update(uint8_t *data, int length);
+int apa102spi_update(const uint8_t *data, int length);
 
 
 #endif

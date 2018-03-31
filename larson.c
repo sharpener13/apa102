@@ -143,7 +143,12 @@ void larson_update(larson_t *larson, uint64_t time)
 
         if (larson->is_forward)
         {
-            if (larson->position - larson->length > larson->pixels)
+            if (larson->is_looping)
+            {
+                if (larson->position >= larson->pixels)
+                    larson->position -= larson->pixels;
+            }
+            else if (larson->position - larson->length > larson->pixels)
             {
                 if (larson->is_bidirect)
                 {
@@ -158,7 +163,12 @@ void larson_update(larson_t *larson, uint64_t time)
         }
         else
         {
-            if (larson->position + larson->length < 0)
+            if (larson->is_looping)
+            {
+                if (larson->position < 0)
+                    larson->position += larson->pixels;
+            }
+            else if (larson->position + larson->length < 0)
             {
                 if (larson->is_bidirect)
                 {
@@ -189,7 +199,8 @@ void larson_update(larson_t *larson, uint64_t time)
 void larson_render(larson_t *larson, apa102_t *apa102)
 {
     int      dir     = larson->is_forward ? 1 : -1;
-    int      pix     = larson->position;
+    int      pos     = larson->position;
+    int      pix     = 0;
     uint32_t col1    = larson->head_change.current;
     uint32_t col2    = larson->tail_change.current;
     int      cnt     = 0;
@@ -222,9 +233,23 @@ void larson_render(larson_t *larson, apa102_t *apa102)
         if ((r == 0) && (g == 0) && (b == 0)) {r = last[0]; g = last[1]; b = last[2];}
         else {last[0] = r; last[1] = g; last[2] = b;}
 
+        pix = pos;
+        if (larson->is_looping)
+        {
+            if (   (larson->is_forward)
+                && (pix < 0))
+            {
+                pix += larson->pixels;
+            }
+            else if (   (!larson->is_forward)
+                     && (pix >= larson->pixels))
+            {
+                pix -= larson->pixels;
+            }
+        }
         apa102_set_pixel(apa102, pix, COL_ARGB(0xff, r, g, b), larson->mode);
 
-        pix -= dir;
+        pos -= dir;
         cnt += 1;
     }
 }

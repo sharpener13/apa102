@@ -33,32 +33,39 @@ typedef enum apa102_pix_mode_tt
 
 
 /**
+ * Configuration options
+ */
+typedef struct apa102_config_tt
+{
+    const char *spi_device;   /**< SPI Device name */
+    int         spi_speed;    /**< SPI Speed in Hz */
+    int         pixel_count;  /**< Number of leds in the chain */
+    int         brightness;   /**< Default brightness (0:off - 31:max) */
+} apa102_config_t;
+
+
+/**
  *  APA102 context
  */
 typedef struct apa102_tt
 {
-    /* Public */
-    char         *spi_device;   /**< SPI Device name */
-    int           spi_speed;    /**< SPI Speed in Hz */
-    int           pixel_count;  /**< Number of leds in the chain */
-    int           brightness;   /**< Default brightness (0:off - 31:max) */
-
-    /* Private */
-    uint8_t     **frame_pool;
-    int           frame_len;
-    uint8_t      *active_frame;
-    sync_fifo_t   free_frames;
-    sync_fifo_t   full_frames;
-    pthread_t     th_renderer;
-    bool          is_renderer_running;
-    bool          is_init;
+    const apa102_config_t  *config;
+    uint8_t                 brightness;
+    uint8_t               **frame_pool;
+    int                     frame_len;
+    uint8_t                *active_frame;
+    uint8_t                *prev_frame;
+    sync_fifo_t             free_frames;
+    sync_fifo_t             full_frames;
+    pthread_t               th_renderer;
+    bool                    is_renderer_running;
 } apa102_t;
 
 
 /*****************************************************************************
  * Public prototypes
  ****************************************************************************/
-int  apa102_init          (apa102_t *self);
+int  apa102_init          (apa102_t *self, const apa102_config_t *config);
 int  apa102_done          (apa102_t *self);
 int  apa102_begin_frame   (apa102_t *self, bool copy_last);
 int  apa102_finish_frame  (apa102_t *self);

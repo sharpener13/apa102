@@ -14,12 +14,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/spi/spidev.h>
+#include "debug.h"
 
 
 /*******************************************************************************
  * Private variables
  ******************************************************************************/
 static int spi_fd = -1;
+static uint32_t spi_speed_hz = 0;
 
 
 /*******************************************************************************
@@ -40,7 +42,7 @@ static int spi_fd = -1;
  * @return    zero on success, nonzero otherwise
  *
  ****************************************************************************/
-int apa102spi_open(char *device, uint32_t speed_hz)
+int apa102spi_open(const char *device, uint32_t speed_hz)
 {
     uint32_t mode = SPI_CPOL | SPI_CPHA | SPI_NO_CS;
     uint8_t  bits = 8;
@@ -73,6 +75,7 @@ int apa102spi_open(char *device, uint32_t speed_hz)
         fprintf(stderr, "Cannot setup SPI device speed %2.3f\n", speed_hz / 1000000.0);
         return -4;
     }
+    spi_speed_hz = speed_hz;
 
     return 0;
 }
@@ -88,6 +91,7 @@ int apa102spi_close(void)
 {
     if (spi_fd >= 0)
     {
+        fsync(spi_fd);
         close(spi_fd);
         spi_fd = -1;
     }
@@ -114,20 +118,25 @@ int apa102spi_close(void)
  ****************************************************************************/
 int apa102spi_update(const uint8_t *data, int length)
 {
-    struct spi_ioc_transfer tr  = {.delay_usecs = 0,};
+    struct spi_ioc_transfer tr  = {.delay_usecs = 0, .speed_hz = spi_speed_hz};
     int                     ret = -1;
 
     if ((data == NULL) || (length <= 0))
+    {
+        DEBUG_MSG(stderr, "SPI transfer failed (invalid data or length)\n");
         return -1;
+    }
 
     tr.tx_buf = (unsigned long)data;
     tr.len    = length;
 
+    DEBUG_DMP(stdout, data, length, 0, "SPI Data Transfer", NULL);
+
     ret = ioctl(spi_fd, SPI_IOC_MESSAGE(1), &tr);
 
-    if (ret < 1)
+    if (ret < 0)
     {
-        fprintf(stderr, "SPI transfer failed%s\n", (spi_fd < 0) ? " (device probably not open)" : "");
+        DEBUG_FMT(stderr, "SPI transfer failed%s\n", (spi_fd < 0) ? " (device probably not open)" : "");
         return -2;
     }
 

@@ -56,7 +56,7 @@ bool col_change_update(col_change_t *ch)
         ch->current = col;
     }
     else
-        ch->current = ch->start;
+        ch->current = ch->stop;
 
     return ch->step >= ch->steps;
 }
